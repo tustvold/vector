@@ -114,7 +114,7 @@ syslog = "5"
 syslog_loose = { version = "0.3.0", optional = true }
 derive_is_enum_variant = "0.1.1"
 leveldb = { git = "https://github.com/timberio/leveldb", optional = true, default-features = false }
-db-key = "0.0.5"
+db-key = "0.1.0"
 headers = "0.3"
 rdkafka = { version = "0.24.0", features = ["libz", "ssl", "zstd"], optional = true }
 hostname = "0.1.5"
