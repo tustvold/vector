@@ -246,6 +246,7 @@ kubernetes = ["k8s-openapi", "evmap"]
 
 # Sources
 sources = [
+  "sources-aws_kinesis_firehose",
   "sources-docker",
   "sources-file",
   "sources-generator",
@@ -264,6 +265,7 @@ sources = [
   "sources-vector",
   "sources-kubernetes-logs",
 ]
+sources-aws_kinesis_firehose = ["base64", "sources-tls", "warp"]
 sources-docker = ["bollard"]
 sources-file = ["bytesize"]
 sources-generator = []

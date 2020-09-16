@@ -4,6 +4,8 @@ mod add_fields;
 mod add_tags;
 mod ansi_stripper;
 mod auto_concurrency;
+#[cfg(feature = "sources-aws_kinesis_firehose")]
+mod aws_kinesis_firehose;
 mod aws_kinesis_streams;
 mod blackhole;
 #[cfg(feature = "transforms-coercer")]
@@ -78,6 +80,8 @@ pub use self::add_fields::*;
 pub use self::add_tags::*;
 pub use self::ansi_stripper::*;
 pub use self::auto_concurrency::*;
+#[cfg(feature = "sources-aws_kinesis_firehose")]
+pub use self::aws_kinesis_firehose::*;
 pub use self::aws_kinesis_streams::*;
 pub use self::blackhole::*;
 #[cfg(feature = "transforms-coercer")]

@@ -1,6 +1,8 @@
 use futures01::Future;
 use snafu::Snafu;
 
+#[cfg(feature = "sources-aws_kinesis_firehose")]
+pub mod aws_kinesis_firehose;
 #[cfg(feature = "sources-docker")]
 pub mod docker;
 #[cfg(feature = "sources-file")]
