@@ -139,6 +139,29 @@ impl Sink for Fanout {
             Ok(Async::NotReady)
         }
     }
+
+    fn close(&mut self) -> Poll<(), Self::SinkError> {
+        self.process_control_messages();
+
+        let mut all_complete = true;
+
+        for i in 0..self.sinks.len() {
+            let (_name, sink) = &mut self.sinks[i];
+            match sink.close() {
+                Ok(Async::Ready(())) => {}
+                Ok(Async::NotReady) => {
+                    all_complete = false;
+                }
+                Err(()) => self.handle_sink_error()?,
+            }
+        }
+
+        if all_complete {
+            Ok(Async::Ready(()))
+        } else {
+            Ok(Async::NotReady)
+        }
+    }
 }
 
 #[cfg(test)]
