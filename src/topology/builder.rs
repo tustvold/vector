@@ -112,7 +112,7 @@ pub async fn build_pieces(
         };
 
         let (input_tx, input_rx) = futures01::sync::mpsc::channel(100);
-        let input_tx = buffers::BufferInputCloner::Memory(input_tx, buffers::WhenFull::Block);
+        let input_tx = buffers::BufferInputCloner::Memory(input_tx, buffers::WhenFull::Block, name.clone());
 
         let (output, control) = Fanout::new();
 

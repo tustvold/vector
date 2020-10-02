@@ -51,7 +51,7 @@ impl Default for WhenFull {
 }
 
 pub enum BufferInputCloner {
-    Memory(mpsc::Sender<Event>, WhenFull),
+    Memory(mpsc::Sender<Event>, WhenFull, String),
     #[cfg(feature = "leveldb")]
     Disk(disk::Writer, WhenFull),
 }
@@ -59,12 +59,12 @@ pub enum BufferInputCloner {
 impl BufferInputCloner {
     pub fn get(&self) -> Box<dyn Sink<SinkItem = Event, SinkError = ()> + Send> {
         match self {
-            BufferInputCloner::Memory(tx, when_full) => {
+            BufferInputCloner::Memory(tx, when_full, name) => {
                 let inner = tx.clone().sink_map_err(|e| error!("sender error: {:?}", e));
                 if when_full == &WhenFull::DropNewest {
                     Box::new(DropWhenFull { inner })
                 } else {
-                    Box::new(inner)
+                    Box::new(Instrumented{ inner, name: name.clone() })
                 }
             }
 
@@ -107,7 +107,7 @@ impl BufferConfig {
                 when_full,
             } => {
                 let (tx, rx) = mpsc::channel(*max_events);
-                let tx = BufferInputCloner::Memory(tx, *when_full);
+                let tx = BufferInputCloner::Memory(tx, *when_full, sink_name.to_string());
                 let rx = Box::new(rx);
                 Ok((tx, rx, Acker::Null))
             }
@@ -190,6 +190,36 @@ impl<S: Sink> Sink for DropWhenFull<S> {
 
     fn poll_complete(&mut self) -> Poll<(), Self::SinkError> {
         self.inner.poll_complete()
+    }
+
+    fn close(&mut self) -> Poll<(), Self::SinkError> {
+        self.inner.close()
+    }
+}
+
+// TODO: Remove Me
+pub struct Instrumented<S> {
+    pub inner: S,
+    pub name: String,
+}
+
+impl<S: Sink> Sink for Instrumented<S> {
+    type SinkItem = S::SinkItem;
+    type SinkError = S::SinkError;
+
+    fn start_send(&mut self, item: Self::SinkItem) -> StartSend<Self::SinkItem, Self::SinkError> {
+        trace!(name=%self.name, "Start Send");
+        self.inner.start_send(item)
+    }
+
+    fn poll_complete(&mut self) -> Poll<(), Self::SinkError> {
+        trace!(name=%self.name, "Poll Complete");
+        self.inner.poll_complete()
+    }
+
+    fn close(&mut self) -> Poll<(), Self::SinkError> {
+        trace!(name=%self.name, "Close");
+        self.inner.close()
     }
 }
 

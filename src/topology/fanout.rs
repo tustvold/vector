@@ -71,7 +71,7 @@ impl Fanout {
         }
     }
 
-    fn handle_sink_error(&mut self) -> Result<(), ()> {
+    fn handle_sink_error(&mut self, i: usize) -> Result<(), ()> {
         // If there's only one sink, propagate the error to the source ASAP
         // so it stops reading from its input. If there are multiple sinks,
         // keep pushing to the non-errored ones (while the errored sink
@@ -79,7 +79,7 @@ impl Fanout {
         if self.sinks.len() == 1 {
             Err(())
         } else {
-            self.sinks.remove(self.i);
+            self.sinks.remove(i);
             Ok(())
         }
     }
@@ -101,7 +101,7 @@ impl Sink for Fanout {
             match sink.start_send(item.clone()) {
                 Ok(AsyncSink::NotReady(item)) => return Ok(AsyncSink::NotReady(item)),
                 Ok(AsyncSink::Ready) => self.i += 1,
-                Err(()) => self.handle_sink_error()?,
+                Err(()) => self.handle_sink_error(self.i)?,
             }
         }
 
@@ -109,7 +109,7 @@ impl Sink for Fanout {
         match sink.start_send(item) {
             Ok(AsyncSink::NotReady(item)) => return Ok(AsyncSink::NotReady(item)),
             Ok(AsyncSink::Ready) => self.i += 1,
-            Err(()) => self.handle_sink_error()?,
+            Err(()) => self.handle_sink_error(self.i)?,
         }
 
         self.i = 0;
@@ -129,7 +129,7 @@ impl Sink for Fanout {
                 Ok(Async::NotReady) => {
                     all_complete = false;
                 }
-                Err(()) => self.handle_sink_error()?,
+                Err(()) => self.handle_sink_error(i)?,
             }
         }
 
@@ -146,13 +146,15 @@ impl Sink for Fanout {
         let mut all_complete = true;
 
         for i in 0..self.sinks.len() {
-            let (_name, sink) = &mut self.sinks[i];
+            let (name, sink) = &mut self.sinks[i];
             match sink.close() {
-                Ok(Async::Ready(())) => {}
+                Ok(Async::Ready(())) => {
+                    trace!(%name, "Fanout sink closed")
+                }
                 Ok(Async::NotReady) => {
                     all_complete = false;
                 }
-                Err(()) => self.handle_sink_error()?,
+                Err(()) => self.handle_sink_error(i)?,
             }
         }
 

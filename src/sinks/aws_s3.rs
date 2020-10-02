@@ -209,11 +209,15 @@ impl S3SinkConfig {
 
         let buffer = PartitionBuffer::new(Buffer::new(batch.size, self.compression));
 
-        let sink = PartitionBatchSink::new(svc, buffer, batch.timeout, cx.acker())
+        let inner = crate::buffers::Instrumented{inner: PartitionBatchSink::new(svc, buffer, batch.timeout, cx.acker()), name: "sink_s3_inner".to_string()};
+
+        let sink = inner
             .with_flat_map(move |e| iter_ok(encode_event(e, &key_prefix, &encoding)))
             .sink_map_err(|error| error!("Sink failed to flush: {}", error));
 
-        Ok(super::VectorSink::Futures01Sink(Box::new(sink)))
+        let wrapped = crate::buffers::Instrumented{inner: sink, name: "sink_s3".to_string()};
+
+        Ok(super::VectorSink::Futures01Sink(Box::new(wrapped)))
     }
 
     pub async fn healthcheck(self, client: S3Client) -> crate::Result<()> {

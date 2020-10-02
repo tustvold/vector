@@ -842,7 +842,7 @@ mod tests {
         sinks::util::{buffer::partition::Partition, BatchSettings, EncodedLength, VecBuffer},
     };
     use bytes::Bytes;
-    use futures::{compat::Future01CompatExt, future, StreamExt};
+    use futures::{compat::Future01CompatExt, future};
     use futures01::{future as future01, Sink};
     use std::sync::{atomic::Ordering::Relaxed, Arc, Mutex};
     use tokio::task::yield_now;

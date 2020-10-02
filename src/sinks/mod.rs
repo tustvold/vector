@@ -1,7 +1,10 @@
 use crate::Event;
-use futures::{compat::Sink01CompatExt, future::BoxFuture, StreamExt};
+use pin_project::pin_project;
+use futures::{compat::Sink01CompatExt, future::BoxFuture, StreamExt, Sink};
 use snafu::Snafu;
 use std::fmt;
+use std::pin::Pin;
+use futures::task::{Context, Poll};
 
 pub mod util;
 
@@ -95,7 +98,11 @@ impl VectorSink {
         S: futures::Stream<Item = Event> + Send + 'static,
     {
         match self {
-            Self::Futures01Sink(sink) => input.map(Ok).forward(sink.sink_compat()).await,
+            Self::Futures01Sink(sink) => {
+                let nested = crate::buffers::Instrumented{inner: sink, name: "cupcakes".to_string()};
+                let wrapped = Instrumented{inner: nested.sink_compat()};
+                input.map(Ok).forward(wrapped).await
+            },
             Self::Stream(ref mut s) => s.run(Box::pin(input)).await,
         }
     }
@@ -107,6 +114,40 @@ impl VectorSink {
             Self::Futures01Sink(sink) => sink,
             _ => panic!("Failed type coercion, {:?} is not a Futures01Sink", self),
         }
+    }
+}
+
+#[pin_project]
+struct Instrumented<S> {
+    #[pin]
+    inner: S
+}
+
+impl <S: futures::Sink<Event>> futures::Sink<Event> for Instrumented<S> {
+    type Error = S::Error;
+
+    fn poll_ready(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.project().inner.poll_ready(cx)
+    }
+
+    fn start_send(self: Pin<&mut Self>, item: Event) -> Result<(), Self::Error> {
+        self.project().inner.start_send(item)
+    }
+
+    fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.project().inner.poll_flush(cx)
+    }
+
+    fn poll_close(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        trace!("Poll Close");
+        let ret = self.project().inner.poll_close(cx);
+        match &ret {
+            Poll::Pending => trace!("Post Poll Close Pending"),
+            Poll::Ready(Ok(())) => trace!("Post Poll Close Ok"),
+            Poll::Ready(Err(_)) => trace!("Post Poll Close Err")
+        }
+
+        ret
     }
 }
 
