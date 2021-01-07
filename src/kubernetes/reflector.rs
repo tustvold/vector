@@ -2,7 +2,7 @@
 
 use super::{
     resource_version, state,
-    watcher::{self, Watcher},
+    watcher::Watcher,
 };
 use crate::internal_events::kubernetes::reflector as internal_events;
 use futures::{
@@ -10,7 +10,7 @@ use futures::{
     stream::{Stream, StreamExt},
 };
 use k8s_openapi::{
-    apimachinery::pkg::apis::meta::v1::{ObjectMeta, WatchEvent},
+    apimachinery::pkg::apis::meta::v1::{ObjectMeta, WatchEvent, Status},
     Metadata, WatchOptional, WatchResponse,
 };
 use snafu::Snafu;
@@ -81,14 +81,7 @@ where
             let invocation_result = self.issue_request().await;
             let stream = match invocation_result {
                 Ok(val) => val,
-                Err(watcher::invocation::Error::Desync { source }) => {
-                    emit!(internal_events::DesyncReceived { error: source });
-                    // We got desynced, reset the state and retry fetching.
-                    self.resource_version.reset();
-                    self.state_writer.resync().await;
-                    continue;
-                }
-                Err(watcher::invocation::Error::Other { source }) => {
+                Err(source) => {
                     // Not a desync, fail everything.
                     error!(message = "Watcher error.", error = ?source);
                     return Err(Error::Invocation { source });
@@ -117,7 +110,16 @@ where
                 if let Some(item) = val {
                     // A new item arrived from the watch response stream
                     // first - process it.
-                    self.process_stream_item(item).await?;
+                    match self.process_stream_item(item).await {
+                        Err(Error::Desync) => {
+                            emit!(internal_events::DesyncReceived{});
+                            // We got desynced, reset the state and retry fetching.
+                            self.resource_version.reset();
+                            self.state_writer.resync().await;
+                            break;
+                        }
+                        x => x?
+                    }
                 } else {
                     // Response stream has ended.
                     // Break the watch reading loop so the flow can
@@ -135,7 +137,7 @@ where
     /// Prepare and execute a watch request.
     async fn issue_request(
         &mut self,
-    ) -> Result<<W as Watcher>::Stream, watcher::invocation::Error<<W as Watcher>::InvocationError>>
+    ) -> Result<<W as Watcher>::Stream, <W as Watcher>::InvocationError>
     {
         let watch_optional = WatchOptional {
             field_selector: self.field_selector.as_deref(),
@@ -160,8 +162,8 @@ where
         let response = item.map_err(|source| Error::Streaming { source })?;
 
         // Unpack the event.
-        let event = match response {
-            WatchResponse::Ok(event) => event,
+        match response {
+            WatchResponse::Ok(event) => self.process_event(event).await,
             WatchResponse::Other(_) => {
                 // Even though we could parse the response, we didn't
                 // get the data we expected on the wire.
@@ -171,34 +173,15 @@ where
                 // TODO: add more details on the data here if we
                 // encounter these messages in practice.
                 warn!(message = "Got unexpected data in the watch response.");
-                return Ok(());
+                Ok(())
             }
-        };
-
-        // Prepare a resource version candidate so we can update (aka commit) it
-        // later.
-        let resource_version_candidate = match resource_version::Candidate::from_watch_event(&event)
-        {
-            Some(val) => val,
-            None => {
-                // This event doesn't have a resource version, this means
-                // it's not something we care about.
-                return Ok(());
-            }
-        };
-
-        // Process the event.
-        self.process_event(event).await;
-
-        // Record the resourse version for this event, so when we resume
-        // it won't be redelivered.
-        self.resource_version.update(resource_version_candidate);
-
-        Ok(())
+        }
     }
 
     /// Translate received watch event to the state update.
-    async fn process_event(&mut self, event: WatchEvent<<W as Watcher>::Object>) {
+    async fn process_event(&mut self, event: WatchEvent<<W as Watcher>::Object>) -> Result<(), Error<<W as Watcher>::InvocationError, <W as Watcher>::StreamError>> {
+        let resource_version_candidate = resource_version::Candidate::from_watch_event(&event);
+
         match event {
             WatchEvent::Added(object) => {
                 trace!(message = "Got an object event.", event = "added");
@@ -214,10 +197,27 @@ where
             }
             WatchEvent::Bookmark { .. } => {
                 trace!(message = "Got an object event.", event = "bookmark");
-                // noop
             }
-            _ => unreachable!("Other event types should never reach this code."),
+            WatchEvent::ErrorStatus(Status{ code: Some(410), ..}) => {
+                return Err(Error::Desync);
+            }
+            // May want to add additional handling for these errors if encountered in practice
+            WatchEvent::ErrorStatus(status) => {
+                warn!(message = "Received watch status error", ?status);
+                return Ok(());
+            }
+            WatchEvent::ErrorOther(raw) => {
+                warn!(message = "Received watch raw error", ?raw);
+                return Ok(());
+            }
+        };
+
+        // Record the resource version for this event, so when we resume it won't be redelivered
+        if let Some(resource_version) = resource_version_candidate {
+            self.resource_version.update(resource_version);
         }
+
+        Ok(())
     }
 }
 
@@ -241,6 +241,11 @@ where
         /// The underlying stream error.
         source: S,
     },
+
+    /// Desync error signals that the server went out of sync and the resource
+    /// version specified in the call can no longer be used.
+    #[snafu(display("stream desync"))]
+    Desync,
 }
 
 #[cfg(test)]

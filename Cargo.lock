@@ -2434,7 +2434,7 @@ version = "0.1.0-beta.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73b1442359831aa671aa931f0a084aab210e77b1330ded78f1e60cc305abc4bb"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if 0.1.10",
  "futures 0.3.8",
  "glob 0.3.0",
  "heim-common",
@@ -2566,7 +2566,7 @@ version = "0.1.0-beta.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d5953a27f3788cb0e0934ab8c275cbd6da5d44d5dd37656d04076602b457c2a1"
 dependencies = [
- "cfg-if 1.0.0",
+ "cfg-if 0.1.10",
  "futures 0.3.8",
  "heim-common",
  "heim-runtime",
@@ -5464,6 +5464,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cb5d2a036dc6d2d8fd16fde3498b04306e29bd193bf306a57427019b823d5acd"
 
 [[package]]
+name = "rusty-fork"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb3dcc6e454c328bb824492db107ab7c0ae8fcffe4ad210136ef014458c1bc4f"
+dependencies = [
+ "fnv",
+ "quick-error",
+ "tempfile",
+ "wait-timeout",
+]
+
+[[package]]
 name = "ryu"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7243,6 +7255,7 @@ dependencies = [
  "rusoto_sqs",
  "rusoto_sts",
  "rust_decimal",
+ "rusty-fork",
  "schannel",
  "seahash",
  "security-framework 2.0.0",
@@ -7271,7 +7284,6 @@ dependencies = [
  "tower",
  "tower-test",
  "tracing 0.1.22",
- "tracing-core 0.1.17",
  "tracing-futures 0.2.4",
  "tracing-limit",
  "tracing-log",
