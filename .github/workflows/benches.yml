@@ -55,7 +55,7 @@ jobs:
       - run: bash scripts/environment/prepare.sh
       - run: echo "::add-matcher::.github/matchers/rust.json"
       - name: Download baseline benchmarks
-        uses: dawidd6/action-download-artifact@891cccee4b25d3306cf5edafa174ddc1d969871f
+        uses: dawidd6/action-download-artifact@bb4bdd30069fecb7806de59879d1e0614425e53d
         continue-on-error: true
         with:
           github_token: ${{secrets.GITHUB_TOKEN}}
