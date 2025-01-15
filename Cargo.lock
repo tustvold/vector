@@ -2243,7 +2243,7 @@ dependencies = [
  "influxdb-line-protocol",
  "memchr",
  "ordered-float 4.6.0",
- "prost 0.12.6",
+ "prost 0.13.3",
  "prost-reflect",
  "rand 0.8.5",
  "regex",
@@ -3111,7 +3111,7 @@ dependencies = [
  "chrono-tz",
  "dnsmsg-parser",
  "hickory-proto",
- "prost 0.12.6",
+ "prost 0.13.3",
  "prost-build 0.12.6",
  "snafu 0.7.5",
  "tracing 0.1.41",
@@ -5594,9 +5594,9 @@ name = "loki-logproto"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "prost 0.12.6",
+ "prost 0.13.3",
  "prost-build 0.12.6",
- "prost-types 0.12.6",
+ "prost-types 0.13.3",
 ]
 
 [[package]]
@@ -6648,7 +6648,7 @@ dependencies = [
  "chrono",
  "hex",
  "ordered-float 4.6.0",
- "prost 0.12.6",
+ "prost 0.13.3",
  "prost-build 0.12.6",
  "tonic 0.11.0",
  "tonic-build 0.11.0",
@@ -7373,9 +7373,9 @@ version = "0.1.0"
 dependencies = [
  "indexmap 2.7.0",
  "nom",
- "prost 0.12.6",
+ "prost 0.13.3",
  "prost-build 0.12.6",
- "prost-types 0.12.6",
+ "prost-types 0.13.3",
  "snafu 0.7.5",
  "vector-common",
 ]
@@ -7471,7 +7471,7 @@ checksum = "22505a5c94da8e3b7c2996394d1c933236c4d743e81a410bcca4e6989fc066a4"
 dependencies = [
  "bytes 1.9.0",
  "heck 0.5.0",
- "itertools 0.12.1",
+ "itertools 0.11.0",
  "log",
  "multimap",
  "once_cell",
@@ -7504,7 +7504,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81bddcdb20abf9501610992b6759a4c888aef7d1a7247ef75e2404275ac24af1"
 dependencies = [
  "anyhow",
- "itertools 0.12.1",
+ "itertools 0.11.0",
  "proc-macro2 1.0.93",
  "quote 1.0.38",
  "syn 2.0.96",
@@ -10790,7 +10790,7 @@ dependencies = [
 
 [[package]]
 name = "vector"
-version = "0.44.0"
+version = "0.45.0"
 dependencies = [
  "apache-avro",
  "approx",
@@ -10908,10 +10908,10 @@ dependencies = [
  "postgres-openssl",
  "proptest",
  "proptest-derive",
- "prost 0.12.6",
+ "prost 0.13.3",
  "prost-build 0.12.6",
  "prost-reflect",
- "prost-types 0.12.6",
+ "prost-types 0.13.3",
  "pulsar",
  "quickcheck",
  "rand 0.8.5",
@@ -11158,9 +11158,9 @@ dependencies = [
  "parking_lot",
  "pin-project",
  "proptest",
- "prost 0.12.6",
+ "prost 0.13.3",
  "prost-build 0.12.6",
- "prost-types 0.12.6",
+ "prost-types 0.13.3",
  "quanta",
  "quickcheck",
  "quickcheck_macros",
